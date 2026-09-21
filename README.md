@@ -1,40 +1,22 @@
-# Technical Consistency Checker v4
+# Technical Consistency Checker v5 — PPTX support
 
-This version fixes:
-`Vercel Blob: Failed to retrieve the client token`
+This version adds `.pptx` support without sending PowerPoint directly to Gemini.
 
-## What changed
+## PPTX behavior
+- The browser reads the PPTX locally.
+- Slide text is extracted slide-by-slide.
+- The extracted text is uploaded as a temporary private text file.
+- Gemini compares that text with the other references/material.
 
-The browser no longer uses `@vercel/blob/client`.
+This is intentionally conservative. Gemini's native document vision is strongest for PDF.
+If visual layout, diagrams, product images, ports, or icons inside a PowerPoint must be checked,
+export that PowerPoint to PDF before uploading for the highest QA quality.
 
-New flow:
-1. Browser asks `/api/upload` for a short-lived signed PUT URL.
-2. `/api/upload` authenticates to the private Blob store using Vercel OIDC.
-3. Browser uploads the file directly to the signed URL.
-4. `/api/check` reads the private blob and sends it to Gemini.
-5. Temporary files are deleted after the check.
+## Other inputs
+PDF / PNG / JPG / WEBP continue to be analyzed visually.
 
-This avoids:
-- Vercel Function payload limits
-- `BLOB_READ_WRITE_TOKEN`
-- client-token retrieval errors
-
-## Required environment variables
-
+## Environment
 - `GEMINI_API_KEY`
+- Private Vercel Blob store connected via Vercel OIDC.
 
-No `BLOB_READ_WRITE_TOKEN` is required for a new Private Blob store using OIDC.
-
-## Required project setup
-
-Your Private Blob store must be connected to this Vercel project.
-
-## Supported files
-
-- PDF
-- PNG
-- JPG/JPEG
-- WEBP
-- TXT / MD
-
-Maximum size in this starter: 50 MB per file.
+No `BLOB_READ_WRITE_TOKEN` required.

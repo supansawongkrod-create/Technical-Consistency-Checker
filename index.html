@@ -31,16 +31,16 @@ table{width:100%;border-collapse:collapse;border:1px solid var(--line)}th,td{pad
 <section class="card">
 <h2>1. Reference documents</h2>
 <p class="help">Upload Sales Guide, Datasheet, Product Brief, or approved specs.</p>
-<div class="drop"><b>Reference files</b><br><input id="refs" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md"><div id="refNames" class="names">No files selected</div></div>
+<div class="drop"><b>Reference files</b><br><input id="refs" type="file" multiple accept=".pdf,.pptx,.png,.jpg,.jpeg,.webp,.txt,.md"><div id="refNames" class="names">No files selected</div></div>
 </section>
 <section class="card">
 <h2>2. Material to review</h2>
 <p class="help">Upload the artwork or document you want to QA.</p>
-<div class="drop"><b>Marketing material</b><br><input id="material" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp"><div id="matName" class="names">No file selected</div></div>
+<div class="drop"><b>Marketing material</b><br><input id="material" type="file" accept=".pdf,.pptx,.png,.jpg,.jpeg,.webp"><div id="matName" class="names">No file selected</div></div>
 </section>
 <section class="card full">
 <h2>3. Run check</h2>
-<p class="help">Large files upload directly to private Vercel Blob storage first, so they do not hit the Vercel Function request-size limit.</p>
+<p class="help">PDFs and images upload to private Vercel Blob storage. PPTX files are converted to slide-by-slide text in your browser before analysis.</p>
 <button id="run">Run Consistency Check</button><span id="status" class="status"></span>
 <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
 <div class="rule"><b>Strict rule:</b> Missing from the Sales Guide does not mean wrong. Report only (1) clear conflicts with uploaded references, or (2) claims that are clearly technically false/impossible. If uncertain, stay silent.</div>
