@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Technical Consistency Checker</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--line:#e5e7eb;--text:#18212f;--muted:#667085;--accent:#159bd7;--bad:#b42318;--good:#027a48}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:1080px;margin:34px auto;padding:0 20px}
+h1{margin:0 0 7px;font-size:30px}.sub{color:var(--muted);margin-bottom:25px;line-height:1.5}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 4px 18px #00000008}.full{grid-column:1/-1}
+h2{font-size:17px;margin:0 0 7px}.help{font-size:14px;color:var(--muted);margin:0 0 14px;line-height:1.5}
+.drop{border:1.5px dashed #cbd5e1;border-radius:13px;padding:23px;text-align:center;background:#fafcff}
+input[type=file]{margin-top:11px;max-width:100%}.names{margin-top:9px;font-size:12px;color:#475467;word-break:break-word}
+button{border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;padding:12px 19px;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}.rule{background:#f8fafc;border-radius:10px;padding:12px 14px;font-size:13px;color:#475467;line-height:1.5;margin-top:14px}
+.status{margin-left:12px;font-size:13px;color:var(--muted)}#result{display:none}
+.ok{border:1px solid #abefc6;background:#ecfdf3;color:var(--good);font-weight:700;padding:16px;border-radius:11px}
+.errtitle{display:flex;align-items:center;gap:8px;margin-bottom:13px}.badge{background:#fee4e2;color:var(--bad);font-size:12px;font-weight:700;border-radius:999px;padding:5px 9px}
+table{width:100%;border-collapse:collapse;border:1px solid var(--line)}th,td{padding:11px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);font-size:13px;line-height:1.45}th{background:#f8fafc;color:#475467;font-size:12px}
+.small{font-size:12px;color:var(--muted);margin-top:10px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Technical Consistency Checker</h1>
+<div class="sub">Compare your marketing material against uploaded Sales Guides, Datasheets, or other approved references. The report shows only errors the AI can confirm from the supplied evidence.</div>
+
+<div class="grid">
+<section class="card">
+<h2>1. Reference documents</h2>
+<p class="help">Upload one or more approved product references.</p>
+<div class="drop">
+<b>Sales Guide / Datasheet / Spec</b><br>
+<input id="refs" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.png,.jpg,.jpeg,.webp">
+<div id="refNames" class="names">No files selected</div>
+</div>
+</section>
+
+<section class="card">
+<h2>2. Material to review</h2>
+<p class="help">Upload the artwork or document you want to QA.</p>
+<div class="drop">
+<b>Marketing material</b><br>
+<input id="material" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp">
+<div id="matName" class="names">No file selected</div>
+</div>
+</section>
+
+<section class="card full">
+<h2>3. Run check</h2>
+<p class="help">The AI compares visible technical claims, numbers, standards, ports, interfaces, logos/icons when identifiable, and technically implied relationships against the references.</p>
+<button id="run">Run Consistency Check</button><span id="status" class="status"></span>
+<div class="rule"><b>Strict reporting rule:</b> If the evidence is unclear, absent from the references, ambiguous, or conflicting, the system does not report it. It reports only confirmed mismatches.</div>
+<div class="small">For this starter version, keep the total selected files small enough for a Vercel request (roughly a few MB total). PDFs work best for Sales Guides/Datasheets because PDF inputs preserve both extracted text and page images.</div>
+</section>
+
+<section id="result" class="card full">
+<div id="output"></div>
+</section>
+</div>
+</div>
+
+<script>
+const refs = document.getElementById('refs');
+const material = document.getElementById('material');
+const refNames = document.getElementById('refNames');
+const matName = document.getElementById('matName');
+const run = document.getElementById('run');
+const status = document.getElementById('status');
+const result = document.getElementById('result');
+const output = document.getElementById('output');
+
+refs.onchange = () => {
+  refNames.textContent = refs.files.length ? [...refs.files].map(f => f.name).join(', ') : 'No files selected';
+};
+material.onchange = () => {
+  matName.textContent = material.files[0]?.name || 'No file selected';
+};
+
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1]);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+function esc(s=''){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+function render(data){
+  result.style.display='block';
+  const issues = Array.isArray(data.issues) ? data.issues : [];
+  if(!issues.length){
+    output.innerHTML = '<div class="ok">✓ No confirmed technical specification errors found.</div>';
+    return;
+  }
+  output.innerHTML = `
+    <div class="errtitle"><h2 style="margin:0">Confirmed Issues</h2><span class="badge">${issues.length} confirmed error${issues.length>1?'s':''}</span></div>
+    <table>
+      <thead><tr><th>Location</th><th>Exact visible evidence</th><th>Why incorrect</th><th>What it should be</th></tr></thead>
+      <tbody>${issues.map(x=>`<tr>
+        <td>${esc(x.location)}</td>
+        <td><b>${esc(x.evidence)}</b></td>
+        <td>${esc(x.why_incorrect)}</td>
+        <td>${esc(x.should_be)}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+run.onclick = async () => {
+  if(!refs.files.length){ alert('Please upload at least one reference document.'); return; }
+  if(!material.files.length){ alert('Please upload a material to review.'); return; }
+
+  run.disabled=true; status.textContent='Reading files and checking...'; result.style.display='none';
+  try{
+    const refPayload = [];
+    for(const f of refs.files){
+      refPayload.push({name:f.name,type:f.type || 'application/octet-stream',data:await fileToBase64(f)});
+    }
+    const mf = material.files[0];
+    const payload = {
+      references: refPayload,
+      material: {name:mf.name,type:mf.type || 'application/octet-stream',data:await fileToBase64(mf)}
+    };
+    const resp = await fetch('/api/check',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if(!resp.ok) throw new Error(data.error || 'Check failed');
+    render(data);
+    status.textContent='Done';
+    result.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    status.textContent='';
+    alert(e.message || String(e));
+  }finally{
+    run.disabled=false;
+  }
+};
+</script>
+</body>
+</html>
