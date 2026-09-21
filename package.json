@@ -7,7 +7,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@vercel/blob": "^2.4.0",
+    "@vercel/blob": "^2.6.1",
     "jszip": "^3.10.1"
   },
   "devDependencies": {
