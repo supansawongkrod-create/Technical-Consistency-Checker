@@ -26,7 +26,7 @@ table{width:100%;border-collapse:collapse;border:1px solid var(--line)}th,td{pad
 <body>
 <div class="wrap">
 <h1>Technical Consistency Checker</h1>
-<div class="sub">Compare your marketing material against uploaded Sales Guides, Datasheets, or other approved references. The report shows only errors the AI can confirm from the supplied evidence.</div>
+<div class="sub">Compare marketing material against approved references and clear technical reality. Only confirmed errors are reported.</div>
 
 <div class="grid">
 <section class="card">
@@ -51,9 +51,9 @@ table{width:100%;border-collapse:collapse;border:1px solid var(--line)}th,td{pad
 
 <section class="card full">
 <h2>3. Run check</h2>
-<p class="help">The AI compares visible technical claims, numbers, standards, ports, interfaces, logos/icons when identifiable, and technically implied relationships against the references.</p>
+<p class="help">Gemini compares visible technical claims, numbers, standards, ports, interfaces, logos/icons when identifiable, and technically implied relationships against the references.</p>
 <button id="run">Run Consistency Check</button><span id="status" class="status"></span>
-<div class="rule"><b>Strict reporting rule:</b> If the evidence is unclear, absent from the references, ambiguous, or conflicting, the system does not report it. It reports only confirmed mismatches.</div>
+<div class="rule"><b>Strict reporting rule:</b> Missing from the Sales Guide does not mean wrong. The system reports only (1) clear conflicts with the uploaded references, or (2) claims that are clearly technically false/impossible. If uncertain, it stays silent.</div>
 <div class="small">For this starter version, keep the total selected files small enough for a Vercel request (roughly a few MB total). PDFs work best for Sales Guides/Datasheets because PDF inputs preserve both extracted text and page images.</div>
 </section>
 
@@ -131,7 +131,10 @@ run.onclick = async () => {
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)
     });
-    const data = await resp.json();
+    const raw = await resp.text();
+    let data;
+    try { data = JSON.parse(raw); }
+    catch { throw new Error(raw.slice(0,300) || `Server error (${resp.status})`); }
     if(!resp.ok) throw new Error(data.error || 'Check failed');
     render(data);
     status.textContent='Done';
