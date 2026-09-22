@@ -53,9 +53,17 @@ export default async function handler(req, res) {
       });
     }
 
-    const uploadUrl = r.headers.get('x-goog-upload-url');
+    let uploadUrl = r.headers.get('x-goog-upload-url');
     if (!uploadUrl) {
       return res.status(502).json({ error: 'Gemini did not return an upload URL.' });
+    }
+
+    // Gemini may return a relative resumable-upload URL.
+    // Normalize it so the browser does not resolve it against the Vercel domain.
+    if (uploadUrl.startsWith('/')) {
+      uploadUrl = `https://generativelanguage.googleapis.com${uploadUrl}`;
+    } else if (!/^https?:\/\//i.test(uploadUrl)) {
+      uploadUrl = `https://generativelanguage.googleapis.com/${uploadUrl.replace(/^\/+/, '')}`;
     }
 
     return res.status(200).json({ uploadUrl });
